@@ -85,72 +85,32 @@ void clear_lcd()
 	}
 }
 
-float convert_data(int raw, char mode)
-{
+float convert_data(int raw, char mode){
 	float c = (float)raw/(float)10.5;
 	if(mode == 'C') return c;
 	if(mode == 'K') return c = (c*1.8) + 32;
 	return 0.0;
 }
 
-void checktemp()
-{
-	if(tempC >= 20.0)
-	{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);
-	}
-	if(tempC >= 40.0){
-
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);
-	}
-	if(tempC >= 60.0){
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);
-	}
-	if(tempC >= 80.0){
-
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);
-	}
-	if(tempC >= 100.0){
-		if(count <= 1){
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_SET);
-			HD44780_Backlight();
-		}
-		else {
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0, GPIO_PIN_RESET);
-			HD44780_NoBacklight();
-		}
-	}
+uint16_t checkTemp(int range_of_tempC, int reage_of_tempF){
+  uint16_t set_led[] = {0x3f /*>= 100*/, 0x3c /*>= 80*/, 0x38 /*>= 60*/, 0x30 /*>= 40*/, 0x20 /*>= 20*/, 0x00 /*>= 0*/};
+  for (int i = 100;i<5;i -= 20){
+    if(range_of_tempC >= i) return set_led[i];
+    else return set_led[5];
+  }
 }
+
+void led_display(int range_of_tempC, int reage_of_tempF){
+  // C mode
+  uint16_t set_led = checkTemp(range_of_tempC, reage_of_tempF);
+  uint16_t pin[] = {GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_3, GPIO_PIN_8,GPIO_PIN_9, GPIO_PIN_0};
+  for(int i=0;i<6;i++){
+    HAL_GPIO_WritePin(GPIOB, pin[i], (set_led & (0x01<<i))>>i);
+  }
+}
+
+
+
 /* USER CODE END 0 */
 
 /**
@@ -219,7 +179,7 @@ int main(void)
 	  HD44780_SetCursor(0,1);
 	  HD44780_PrintStr(msg);
 	  clear_lcd();
-	  checktemp();
+	  led_display(tempC, tempF);
 	  HAL_Delay(100);
 	  count++;
 	  if(count == 3) count =0;
