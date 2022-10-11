@@ -179,7 +179,7 @@ int main(void)
 	  HD44780_SetCursor(0,1);
 	  HD44780_PrintStr(msg);
 	  clear_lcd();
-	  led_display(int tempC, int tempF);
+	  led_display(tempC, tempF);
 	  HAL_Delay(100);
 	  count++;
 	  if(count == 3) count =0;
